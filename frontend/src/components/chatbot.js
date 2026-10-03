@@ -47,8 +47,7 @@ const Chatbot = ({ chatMessages, addChatMessage, sendChatMessage }) => {
   return (
     <div className={`chatbot ${isOpen ? "open" : ""}`}>
       <button className="chatbot-toggle" onClick={toggleChatbot} title="Buka NetMoniAI Copilot">
-        <span className="chatbot-toggle-icon">🛡️</span>
-        <span>{isOpen ? "Tutup Copilot" : "Security Copilot"}</span>
+        <span>{isOpen ? "Tutup Copilot" : "Copilot"}</span>
         {!isOpen && <span className="chatbot-live-dot"></span>}
       </button>
 

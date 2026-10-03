@@ -53,6 +53,7 @@ class SecurityAnalysisAgent:
         self.attack_queue = attack_queue
         self.security_to_report_queue = security_to_report_queue
         self.latest_metrics = None
+        self.latest_attack_result = None
         self.api_key = api_key
 
     async def analyze_pcap(self, pcap_path: str) -> None:
@@ -65,6 +66,7 @@ class SecurityAnalysisAgent:
                 "details": detect_result.details,
                 "raw_bert_output": detect_result.raw_bert_output
             }
+            self.latest_attack_result = attack_data
             
             await self.attack_queue.put(attack_data)
             await self.security_to_performance_queue.put(detect_result)

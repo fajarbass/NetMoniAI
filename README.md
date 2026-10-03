@@ -311,6 +311,27 @@ All persistent state is stored in an embedded SQLite database configured with **
 
 ---
 
+## 🎯 ns-3 Attack Simulation Replay (DoS & Port Scan)
+
+Two ns-3 scenarios live in [`simulations/`](simulations/README.md) (`dos-simulation.cc`, `port-scan-simulation.cc`). Their per-node `.pcap` output can be replayed into the Central SOC dashboard:
+
+```powershell
+# DoS (UDP flood): nodes 0-2 attack node 3
+python backend\analyze_nodes.py --scenario dos --pcap-dir <folder-with-dos-node-*.pcap>
+
+# Port scan: nodes 0-1 scan nodes 17-19
+python backend\analyze_nodes.py --scenario portscan --pcap-dir <folder-with-port-scan-*.pcap>
+```
+
+- `--scenario` is `syn` (default, legacy), `dos` or `portscan`, and selects the ground-truth labels (attackers / victims / attack type).
+- `--pcap-dir` defaults to `backend/segregated/segregated_pcaps13`.
+- Reports are POSTed to `http://localhost:8000/gcreport`; if the server is unreachable they are written straight to SQLite.
+- Without a configured AI provider the agent's generic fallback report is discarded and the scenario ground truth is used, so benign nodes stay **Nominal**. Configure a provider in **Settings > AI Providers** for real content-based analysis.
+
+See [`simulations/README.md`](simulations/README.md) for building and running the scenarios on Windows (MSVC).
+
+---
+
 ## 🧪 Scientific Background & Evaluation
 
 NetMoniAI was evaluated in research experiments across two environments:

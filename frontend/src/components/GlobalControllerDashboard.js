@@ -300,14 +300,14 @@ const GlobalControllerDashboard = () => {
   const calculateAveragePacketSize = (m) =>
     Array.isArray(m) && m.length > 1
       ? m
-          .map((x) => {
-            const t = +x.time;
-            const pk = +x.packets || 0;
-            const bt = +x.bytes || 0;
-            const avg = pk > 0 ? bt / pk : 0;
-            return { time: t, x: t * 1000, y: avg, avg_size: avg };
-          })
-          .filter((d) => !isNaN(d.x) && !isNaN(d.y))
+        .map((x) => {
+          const t = +x.time;
+          const pk = +x.packets || 0;
+          const bt = +x.bytes || 0;
+          const avg = pk > 0 ? bt / pk : 0;
+          return { time: t, x: t * 1000, y: avg, avg_size: avg };
+        })
+        .filter((d) => !isNaN(d.x) && !isNaN(d.y))
       : [];
 
   const getMetaData = (nd, ip) => {
@@ -334,7 +334,7 @@ const GlobalControllerDashboard = () => {
   return (
     <div className="global-controller-dashboard">
       <div className="soc-hero">
-        <h1 className="page-title">Central Security Operations Center (SOC)</h1>
+        <h1 className="page-title">Central Security Operations Center</h1>
         <p className="page-subtitle">
           Enterprise Multi-Node Telemetry Collector, Distributed Threat Heuristics &amp; Packet Flow Topology
         </p>
@@ -470,8 +470,8 @@ const GlobalControllerDashboard = () => {
               {liveNodeCount > 0
                 ? `Selected Node: ${selectedNode}`
                 : simulationMode
-                ? `Simulasi (Selected: ${selectedNode})`
-                : "Topologi Dinonaktifkan"}
+                  ? `Simulasi (Selected: ${selectedNode})`
+                  : "Topologi Dinonaktifkan"}
             </span>
           </div>
 

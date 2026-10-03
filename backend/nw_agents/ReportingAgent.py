@@ -101,14 +101,26 @@ async def generate_network_report(
     return report
 
 
-async def forward_report_to_central_server(server_url: str, report_data: dict, node_name: str):
+async def forward_report_to_central_server(server_url: str, report_data: dict, node_name: str, node_ip: str = None):
     """Forward incident report to Central Server asynchronously."""
     try:
         import httpx
+        import socket
         url = f"{server_url.rstrip('/')}/gcreport"
         payload = dict(report_data)
         if node_name:
             payload["client_node_name"] = node_name
+        if not payload.get("node_ip"):
+            if node_ip:
+                payload["node_ip"] = node_ip
+            else:
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.connect(("8.8.8.8", 80))
+                    payload["node_ip"] = s.getsockname()[0]
+                    s.close()
+                except Exception:
+                    payload["node_ip"] = "127.0.0.1"
         async with httpx.AsyncClient(timeout=4.0) as client:
             resp = await client.post(url, json=payload)
             if resp.status_code == 200:
@@ -136,6 +148,21 @@ class ReportingAgent:
             )
             await self.reports_queue.put(report_result)
             logger.info(f"Report generated and queued: {report_result.report_id}")
+
+            # Forward incident report to Central Server if configured
+            try:
+                from settings_manager import settings_manager
+                cfg = settings_manager.get_config().central_server
+                if cfg.enabled and cfg.server_url:
+                    report_dict = report_result.__dict__ if hasattr(report_result, "__dict__") else dict(report_result)
+                    asyncio.create_task(forward_report_to_central_server(
+                        server_url=cfg.server_url,
+                        report_data=report_dict,
+                        node_name=cfg.client_node_name
+                    ))
+            except Exception as fwd_err:
+                logger.warning(f"Could not queue report forwarding: {fwd_err}")
+
             return report_result
         except Exception as e:
             logger.error(f"Error in ReportingAgent.generate_report: {e}")

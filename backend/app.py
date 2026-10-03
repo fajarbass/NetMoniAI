@@ -43,6 +43,72 @@ from config import metrics_queue, attack_queue, reports_queue
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+async def central_server_sync_worker(performance_agent, security_agent):
+    """Periodically sends real-time heartbeat telemetry from this Endpoint Agent to Central Controller."""
+    import httpx
+    import socket
+    import platform
+
+    def get_agent_ip():
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except Exception:
+            return "127.0.0.1"
+
+    await asyncio.sleep(2.0)
+    logger.info("Central Server Telemetry Sync Worker started.")
+
+    while True:
+        try:
+            cfg = settings_manager.get_config().central_server
+            if cfg.enabled and cfg.server_url:
+                target_url = f"{cfg.server_url.rstrip('/')}/gcreport"
+                node_ip = get_agent_ip()
+                node_name = cfg.client_node_name or platform.node() or "Endpoint-Agent"
+
+                # Check security threat status
+                threat_detected = False
+                attack_type = "None"
+                if hasattr(security_agent, "latest_attack_result") and security_agent.latest_attack_result:
+                    threat_detected = bool(security_agent.latest_attack_result.get("attack_detected", False))
+                    attack_type = str(security_agent.latest_attack_result.get("details", "Threat Detected") if threat_detected else "None")
+
+                # Extract time series metrics from recent sliding window
+                time_series = []
+                if hasattr(performance_agent, "sliding_window") and performance_agent.sliding_window:
+                    for dp in list(performance_agent.sliding_window)[-12:]:
+                        total_b = int(dp.get("bytes_sent", 0) + dp.get("bytes_recv", 0))
+                        time_series.append({
+                            "time": time.time(),
+                            "packets": max(1, int(total_b / 500)),
+                            "bytes": total_b
+                        })
+
+                payload = {
+                    "node_ip": node_ip,
+                    "node_name": node_name,
+                    "role": "Endpoint Agent",
+                    "attack_detected": threat_detected,
+                    "attack_type": attack_type,
+                    "confidence": 0.98 if threat_detected else 0.99,
+                    "summary": f"Agent {node_name} live telemetry streaming nominal" if not threat_detected else f"Threat {attack_type} detected on {node_name}",
+                    "anomalies_detected": "Anomalous traffic volume" if threat_detected else "None",
+                    "time_series_metrics": time_series,
+                }
+
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    resp = await client.post(target_url, json=payload)
+                    if resp.status_code == 200:
+                        logger.debug(f"Telemetry synced to Central Server at {target_url} for node {node_ip}")
+        except Exception as e:
+            logger.debug(f"Telemetry sync to Central Server: {e}")
+
+        await asyncio.sleep(5.0)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing NetMoniAI application and SQLite database...")
@@ -79,11 +145,12 @@ async def lifespan(app: FastAPI):
 
     # Tasks for Agent Mode or All-in-One Mode
     if APP_MODE in ["agent", "all"]:
-        logger.info("Spawning Local Monitoring Micro-Agents (Performance, Tuning, Security, Reporting)...")
+        logger.info("Spawning Local Monitoring Micro-Agents (Performance, Tuning, Security, Reporting, Sync)...")
         asyncio.create_task(performance_agent.run())
         asyncio.create_task(tuning_agent.run())
         asyncio.create_task(security_agent.run())
         asyncio.create_task(reporting_agent.run())
+        asyncio.create_task(central_server_sync_worker(performance_agent, security_agent))
 
     # Spawn WebSocket Broadcaster in all modes so clients receive metrics, alerts, and reports
     logger.info("Spawning Real-time WebSocket Broadcaster...")
@@ -236,7 +303,7 @@ async def test_ai_connection(payload: Dict[str, Any]):
 
 @app.post("/api/central-server/ping")
 async def ping_central_server(payload: Dict[str, Any]):
-    """Test connectivity from this monitoring agent to the Central Server."""
+    """Test connectivity from this monitoring agent to the Central Server and register node."""
     server_url = payload.get("server_url", "")
     if not server_url:
         raise HTTPException(status_code=400, detail="server_url is required")
@@ -244,12 +311,39 @@ async def ping_central_server(payload: Dict[str, Any]):
     start = time.time()
     try:
         import httpx
-        url = f"{server_url.rstrip('/')}/gcstatuses"
+        import socket
+        import platform
+
+        def get_agent_ip():
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(("8.8.8.8", 80))
+                ip = s.getsockname()[0]
+                s.close()
+                return ip
+            except Exception:
+                return "127.0.0.1"
+
+        node_ip = get_agent_ip()
+        node_name = payload.get("client_node_name") or platform.node() or "Endpoint-Agent"
+
+        report_payload = {
+            "node_ip": node_ip,
+            "node_name": node_name,
+            "role": "Endpoint Agent",
+            "attack_detected": False,
+            "attack_type": "None",
+            "confidence": 0.99,
+            "summary": f"Agent {node_name} connected and verified via Ping.",
+            "anomalies_detected": "None",
+        }
+
+        url = f"{server_url.rstrip('/')}/gcreport"
         async with httpx.AsyncClient(timeout=4.0) as client:
-            resp = await client.get(url)
+            resp = await client.post(url, json=report_payload)
             elapsed_ms = int((time.time() - start) * 1000)
             if resp.status_code == 200:
-                return {"status": "ok", "message": f"Connected to Central Server at {server_url}", "latency_ms": elapsed_ms}
+                return {"status": "ok", "message": f"Connected & registered to Central Server at {server_url} (Node IP: {node_ip})", "latency_ms": elapsed_ms}
             else:
                 return {"status": "error", "message": f"Server replied with HTTP {resp.status_code}", "latency_ms": elapsed_ms}
     except Exception as e:

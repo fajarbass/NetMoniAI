@@ -13,6 +13,15 @@ using namespace ns3;
 class PortScanApp : public Application
 {
 public:
+  static TypeId GetTypeId (void)
+  {
+    static TypeId tid = TypeId ("PortScanApp")
+      .SetParent<Application> ()
+      .SetGroupName ("Tutorial")
+      .AddConstructor<PortScanApp> ();
+    return tid;
+  }
+
   PortScanApp() = default;
 
   void Configure(const std::vector<Ipv4Address>& victims,
