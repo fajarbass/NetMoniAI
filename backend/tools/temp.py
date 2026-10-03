@@ -4,11 +4,11 @@ import sys
 import google.generativeai as genai
 from google.ai.generativelanguage_v1beta.types import content
 backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, backend_dir)
-from secretKeys import *
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 import json
 
-genai.configure(api_key=GEMINI_API_KEY)
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 def upload_to_gemini(path, mime_type=None):
     file = genai.upload_file(path, mime_type=mime_type)
@@ -103,11 +103,16 @@ def convert_pcap_to_csv(pcap_path: str | Path, csv_path: str | Path) -> None:
     ]
 
     with open(csv_path, "w") as csv_file:
+        run_kwargs = {
+            "check": True,
+            "stdout": csv_file,
+            "text": True
+        }
+        if sys.platform.startswith("win"):
+            run_kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
         subprocess.run(
             tshark_cmd,
-            check=True,
-            stdout=csv_file,
-            text=True
+            **run_kwargs
         )
         
     print(f"✓ Converted {pcap_path} → {csv_path}")

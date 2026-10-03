@@ -49,11 +49,16 @@ def convert_pcap_to_csv(pcap_path: Union[str, Path]) -> str:
         "-E", "occurrence=f",
     ]
 
+    run_kwargs = {
+        "check": True,
+        "capture_output": True,
+        "text": True
+    }
+    if sys.platform.startswith("win"):
+        run_kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
     result = subprocess.run(
         tshark_cmd,
-        check=True,
-        capture_output=True,
-        text=True
+        **run_kwargs
     )
     return result.stdout
 

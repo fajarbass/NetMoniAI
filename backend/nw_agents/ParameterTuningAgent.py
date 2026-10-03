@@ -1,58 +1,77 @@
 import asyncio
-from common_classes import MyDeps, ParameterResult
-from secretKeys import GEMINI_API_KEY
-from pydantic_ai import Agent
-from pydantic_ai.models.gemini import GeminiModel
+import json
 import logging
+from typing import Optional
+
+from common_classes import MyDeps, ParameterResult
+from services.llm_service import generate_llm_response
 
 logger = logging.getLogger(__name__)
+
+TUNING_SYS_PROMPT = """
+You are a network parameter tuning agent. Based on current network conditions and historical metrics, 
+set optimal packet capture duration (15 to 45 seconds) and monitoring cycle interval (2 to 20 seconds).
+Respond with a JSON object in this format:
+{
+  "duration": 30,
+  "interval": 5
+}
+Guidelines:
+- If latency is high or attacks were detected: increase duration (30-40s) and decrease interval (2-5s) for closer inspection.
+- If network is stable and normal: decrease duration (15-20s) and increase interval (10-20s) to save resources.
+"""
 
 class ParameterTuningAgent:
     def __init__(self, performance_to_tuning_queue: asyncio.Queue, tuning_to_performance_queue: asyncio.Queue):
         self.performance_to_tuning_queue = performance_to_tuning_queue
         self.tuning_to_performance_queue = tuning_to_performance_queue
-        
-        self.sys_prompt = (
-            "You are a parameter tuning agent. Based on network conditions, previous analysis, and historical data, "
-            "set optimal capture duration (30-40 seconds) and cycle interval (5-30 seconds). "
-            "Guidelines: Increase duration and decrease interval if attacks are frequent or latency is high; "
-            "otherwise, decrease duration and increase interval."
-        )
-        self.model = GeminiModel(model_name='gemini-2.0-flash', api_key=GEMINI_API_KEY)
-        self.agent = Agent(
-            model=self.model,
-            system_prompt=self.sys_prompt,
-            model_settings={'temperature': 0.3},
-            result_retries=3,
-            retries=3,
-            result_type=ParameterResult
-        )
 
     async def run(self) -> None:
-        """Adjust monitoring parameters based on current and historical network conditions."""
+        """Adjust monitoring parameters dynamically using active AI provider."""
         while True:
             data = await self.performance_to_tuning_queue.get()
-            metrics = data["metrics"]
-            previous_attack_detected = data["previous_attack_detected"]
+            metrics = data.get("metrics", {})
+            aggregates = metrics.get("aggregates", {})
+            previous_attack_detected = data.get("previous_attack_detected", False)
             recent_history = data.get("recent_history", [])
-            
-            if recent_history:
-                latencies = [entry["avg_latency"] for entry in recent_history if entry["avg_latency"] is not None]
-                attacks = [entry["attack_detected"] for entry in recent_history if entry["attack_detected"] is not None]
-                avg_latency_history = sum(latencies) / len(latencies) if latencies else None
-                num_attacks = sum(1 for attack in attacks if attack)
-            else:
-                avg_latency_history = None
-                num_attacks = 0
-            
+
+            avg_lat = aggregates.get("avg_latency") or 0.0
+            avg_loss = aggregates.get("avg_loss") or 0.0
+            num_attacks = sum(1 for entry in recent_history if entry.get("attack_detected"))
+
             prompt = (
-                f"Tune parameters based on current network conditions, previous analysis, and historical data. "
-                f"Current average latency: {metrics['aggregates']['avg_latency']} ms, "
-                f"current packet loss: {metrics['aggregates']['avg_loss']} %, "
-                f"previous attack detected: {previous_attack_detected}, "
-                f"number of attacks in last 10 cycles: {num_attacks}, "
-                f"average latency in last 10 cycles: {avg_latency_history or 'N/A'} ms."
+                f"Tune monitoring parameters:\n"
+                f"- Current average latency: {avg_lat} ms\n"
+                f"- Current packet loss: {avg_loss} %\n"
+                f"- Previous cycle attack detected: {previous_attack_detected}\n"
+                f"- Recent attacks in last 10 cycles: {num_attacks}\n"
+                f"Determine optimal capture duration (seconds) and cycle interval (seconds)."
             )
-            param_result = await self.agent.run(user_prompt=prompt, deps=MyDeps())
-            updated_deps = MyDeps(duration=param_result.data.duration, cycle_interval=param_result.data.interval)
+
+            try:
+                raw_json = await generate_llm_response(
+                    prompt=prompt,
+                    system_prompt=TUNING_SYS_PROMPT,
+                    agent_name="tuning_agent",
+                    json_mode=True
+                )
+                clean_str = raw_json.strip()
+                if clean_str.startswith("```"):
+                    clean_str = clean_str.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+
+                parsed = json.loads(clean_str)
+                duration = int(parsed.get("duration", 25))
+                interval = int(parsed.get("interval", 3))
+                # Bound to safe ranges
+                duration = max(10, min(60, duration))
+                interval = max(1, min(30, interval))
+            except Exception as e:
+                logger.warning(f"Parameter tuning LLM call fallback: {e}")
+                # Safe heuristic fallback
+                if previous_attack_detected or avg_lat > 100:
+                    duration, interval = 30, 2
+                else:
+                    duration, interval = 18, 5
+
+            updated_deps = MyDeps(duration=duration, cycle_interval=interval)
             await self.tuning_to_performance_queue.put(updated_deps)

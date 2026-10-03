@@ -1,39 +1,88 @@
+# ==============================================================================
+# NetMoniAI - Git Ignore Rules
+# ==============================================================================
+
+# --- Python Environment & Bytecode ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
 backend/venv/
 .venv/
+venv/
+env/
+ENV/
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- PyInstaller & Distribution Artifacts ---
+dist/
+build/
+*.spec
+*.manifest
+
+# --- Local Databases & Runtime State ---
+*.db
+*.db-wal
+*.db-shm
+backend/data/*.db
+backend/data/*.db-wal
+backend/data/*.db-shm
+backend/data/settings.json
+backend/history.json
+backend/history_backup.json
+
+# --- Environment Variables & Secrets ---
+.env
+.env.*
+!.env.example
 backend/secretKeys.py
-__pycache__/
-*.pyc
+*secretKeys*.py
+
+# --- Network Captures & Logs ---
+*.log
+*.pcap
+*.pcapng
 *.csv
-*.pyo
-*.pyd
 lastCapture/
 segregated/
 
-.vscode/
-.idea/
-.DS_Store
-*.swp
-
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# --- Frontend Node & React ---
 frontend/node_modules/
+frontend/build/
 frontend/.pnp
 frontend/.pnp.js
-
-# testing
-frontend//coverage
-
-# production
-frontend//build
-
-# misc
-frontend/.DS_Store
+frontend/coverage/
 frontend/.env.local
 frontend/.env.development.local
 frontend/.env.test.local
 frontend/.env.production.local
-
 frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
+
+# --- IDEs & OS Specific ---
+.vscode/
+.idea/
+.DS_Store
+frontend/.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+
+# --- Graphify & AI Knowledge Graphs ---
+graphify-out/

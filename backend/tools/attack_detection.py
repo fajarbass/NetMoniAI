@@ -5,7 +5,6 @@ from scapy.all import PcapReader, IP, TCP, UDP
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, backend_dir)
-from secretKeys import *
 
 class PcapClassifier:
     def __init__(self, model_name="rdpahalavan/bert-network-packet-flow-header-payload"):

@@ -37,3 +37,7 @@ class NetworkReport(BaseModel):
     potential_causes: str = Field(description="Analysis of potential causes")
     recommended_actions: str = Field(description="Recommended mitigation actions")
     further_investigation: Optional[str] = Field(default=None, description="Recommendations for further investigation")
+    node_ip: Optional[str] = Field(default=None, description="IP address of the monitored node")
+    node_name: Optional[str] = Field(default=None, description="Friendly name of the monitored node")
+    role: Optional[str] = Field(default=None, description="Role of the node (attacker/victim/benign)")
+    severity: Optional[str] = Field(default=None, description="Severity level of the incident")

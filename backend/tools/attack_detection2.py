@@ -156,8 +156,7 @@ from google.cloud import storage
 
 # Adjust the system path to include backend directory
 backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, backend_dir)
-from secretKeys import GEMINI_API_KEYS  # Import the list of API keys (if needed)
+GEMINI_API_KEYS = [os.getenv("GEMINI_API_KEY", "")]
 
 # Set environment variables for Vertex AI
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/Users/thanikella_nikhil/Downloads/mythical-mason-460719-n7-66c3e972c0aa.json'
@@ -237,12 +236,14 @@ def convert_pcap_to_csv(pcap_path: Union[str, Path], csv_path: Union[str, Path])
     ]
 
     with open(csv_path, "w") as csv_file:
-        subprocess.run(
-            tshark_cmd,
-            check=True,
-            stdout=csv_file,
-            text=True
-        )
+        run_kwargs = {
+            "check": True,
+            "stdout": csv_file,
+            "text": True
+        }
+        if sys.platform.startswith("win"):
+            run_kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+        subprocess.run(tshark_cmd, **run_kwargs)
 
 # Main function to detect attacks
 def detect_attack_func(path: Union[str, Path], api_key: str) -> str:

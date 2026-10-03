@@ -1,181 +1,62 @@
-/* 
-.container {
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  margin: 20px;
-}
+/* NetworkVisualizer.css - Dark Cyber SOC Topology */
 
-svg {
-  border: 1px solid #ccc;
-  background-color: #fff;
-}
-
-.node circle {
-  fill: steelblue;
-  stroke: #333;
-  stroke-width: 1.5px;
-}
-
-.node text {
-  font-size: 10px;
-  fill: #333;
-  pointer-events: none;
-}
-
-.packet {
-  fill: orangered;
-}
-
-
-.tooltip {
-  position: absolute;
-  text-align: center;
-  padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
-  border-radius: 4px;
-  pointer-events: none;
-  font-size: 12px;
-} */
-
-/* NetworkVisualizer.css */
-/* .container {
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  margin: 0;
-  width: 100%; 
-  max-width: 800px; 
-}
-
-svg {
-  border: 1px solid #ccc;
-  background-color: #fff;
-  width: 100%; 
-  height: auto; 
-}
-
-.node circle {
-  fill: steelblue;
-  stroke: #333;
-  stroke-width: 1.5px;
-}
-
-.node text {
-  font-size: 10px;
-  fill: #333;
-  pointer-events: none;
-}
-
-.packet {
-  fill: orangered;
-}
-
-.tooltip {
-  position: absolute;
-  text-align: center;
-  padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
-  border-radius: 4px;
-  pointer-events: none;
-  font-size: 12px;
-} */
-
-/* new version */
-
-/* NetworkVisualizer.css */
-/* .container {
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  margin: 0;
-  width: 100%;
-  max-width: none;
-}
-
-svg {
-  border: 1px solid #ccc;
-  background-color: #fff;
-  width: 100%;
-  height: auto;
-}
-
-.node circle {
-  fill: steelblue;
-  stroke: #333;
-  stroke-width: 1.5px;
-}
-
-.node text {
-  font-size: 10px;
-  fill: #333;
-  pointer-events: none;
-}
-
-.packet {
-  fill: orangered;
-}
-
-.tooltip {
-  position: absolute;
-  text-align: center;
-  padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
-  border-radius: 4px;
-  pointer-events: none;
-  font-size: 12px;
-} */
-
-/* NetworkVisualizer.css */
-
-/* ───── Wrapper for your SVG/Canvas ───── */
 .network-visualization {
-  background-color: #fff;
-  padding: 20px;
+  background-color: #0f172a;
+  padding: 16px;
   border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  width: 100%;              /* fill the left-panel */
+  border: 1px solid #1e293b;
+  width: 100%;
   box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-/* ───── Make the SVG/Canvas inside fill that wrapper ───── */
-.network-visualization > svg,
-.network-visualization canvas {
+.network-visualization > svg {
   width: 100% !important;
-  height: 450px;            /* fixed height you choose */
+  height: 480px !important;
+  background-color: #0b0f19;
+  border-radius: 6px;
+  display: block;
 }
 
-/* ───── Node styling ───── */
+/* Node styling */
 .node circle {
-  fill: steelblue;
-  stroke: #333;
-  stroke-width: 1.5px;
+  stroke-width: 2px;
+  transition: all 0.3s ease;
+  cursor: pointer;
 }
+
+.node circle:hover {
+  filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.8));
+}
+
 .node text {
-  font-size: 10px;
-  fill: #333;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  fill: #e2e8f0;
   pointer-events: none;
+  font-weight: 600;
 }
 
-/* ───── Packet dot styling ───── */
+/* Packet Animation */
 .packet {
-  fill: orangered;
+  fill: #38bdf8;
+  filter: drop-shadow(0 0 6px #38bdf8);
 }
 
-/* ───── Tooltip styling ───── */
+/* Glassmorphic Tooltip */
 .tooltip {
   position: absolute;
   text-align: center;
-  padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
-  border-radius: 4px;
+  padding: 6px 12px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid #38bdf8;
+  color: #f8fafc;
+  border-radius: 6px;
   pointer-events: none;
   font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
 }
